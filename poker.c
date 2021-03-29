@@ -15,17 +15,20 @@ void check_high();
 void check_three();
 void check_straight();
 void check_flush();
-stuct player{
-	int cards[3];
-	int hand[11];
-	int full[8];
+void check_full_house();
+void check_four();
+void check_sf();
+void check_rf();
+struct player{
+	int cards[2];
+	int hand[13];
+	int full[7];
 	int money;
-}p1,p2,p3;
-player p[4];
+};
+struct player p[4];
 
-int deck[53],player1[3],player2[3],player3[3],middle[6];
-int player1_hand[11],player2_hand[11],player3_hand[11];
-int player1_full[8],player2_full[8],player3_full[8];
+int deck[52],middle[5];
+
 
 int main(){
 	int i;
@@ -39,14 +42,25 @@ int main(){
 	check_three();
 	check_straight();
 	check_flush();
-	printf("%2d%2d\n",player1_hand[6],player1_hand[7]);
-	for (i=0;i<8;i++){
-		printf("%3d", card_value(player1_full[i]));
+	check_full_house();
+	check_four();
+	check_sf();
+	check_rf();
+	for (i=0;i<13;i++){
+		printf("%3d",p[0].hand[i]);
+	}
+	printf("\n");
+	for (i=0;i<7;i++){
+		printf("%3d", card_value(p[0].full[i]));
 	}	
 	printf("\n");
-
+	for (i=0;i<7;i++){
+		printf("%3d", suit(p[0].full[i]));
+	}
+	printf("\n");
 	return 0;
 }
+
 void create_deck(){
 	int i;
 	
@@ -79,26 +93,38 @@ void reset_players(){
 		middle[i] = 0;
 }
 void start_game(){
-	int i,x;
-	p1.cards[0]= deck[0];
-	p1.cards[1]= deck[3];
-	p2.cards[0]= deck[1];
-	p2.cards[1]= deck[4];
-	p3.cards[0]= deck[2];
-	p3.cards[1]= deck[5];
+	int i,x,k,j,temp1;
+	p[0].cards[0]= deck[0];
+	p[0].cards[1]= deck[3];
+	p[1].cards[0]= deck[1];
+	p[1].cards[1]= deck[4];
+	p[2].cards[0]= deck[2];
+	p[2].cards[1]= deck[5];
 	for (i=0;i<5;i++){
 		x=i+6;
 		middle[i] = deck[x];
 	}
-	for (i=0;i<2;i++){
-		for (x=0;i<3;x++){
-			p[x].full[i] = p[x].cards[i];
-	}
-	for (i=0;i<5;i++){
-		for (x=0;x<3;x++){
-			p[x].full[i+2]=middle[i];
+	for (i=0;i<3;i++){
+		for (x=0;x<2;x++){
+			p[i].full[x] = p[i].cards[x];
 		}
 	}
+	for (i=0;i<3;i++){
+		for (x=0;x<5;x++){
+			p[i].full[x+2]=middle[x];
+		}
+	}
+        for (k=0;k<3;k++){
+                for (i=0;i<8;i++){
+                        for (j=i+1;j<7;j++){
+                                if (card_value(p[k].full[i]) > card_value(p[k].full[j])){
+                                        temp1 = p[k].full[i];
+                                        p[k].full[i] = p[k].full[j];
+                                        p[k].full[j] = temp1;
+                                }
+                        }
+                }
+        }
 }
 int card_value(int card){
 	int num;
@@ -157,7 +183,7 @@ void show_suit(int card){
 void check_high(){
 	int value,i;
 	for (i=0;i<3;i++){
-		value = p1.cards[0]%13+1;
+		value = card_value(p[i].cards[0]);
 		if (card_value(p[i].cards[1])>value)
 			p[i].hand[0] = card_value(p[i].cards[1]);
 		else
@@ -165,226 +191,138 @@ void check_high(){
 	}
 }
 void check_pairs(){
-	int i,x;
-	if (card_value(player1[0]) == card_value(player1[1]))
-                player1_hand[1] = card_value(player1[0]);
-	for (i=0;i<2;i++){
-		for (x=0;x<5;x++){
-			if (card_value(player1[i]) == card_value(middle[x]) && player1_hand[2] ==0){
-				player1_hand[2]= card_value(player1[i]);
-			}
-			else if (card_value(player1[i]) == card_value(middle[x]) && player1_hand[2]>0){
-                                player1_hand[3]= card_value(player1[i]);
-			}
-		}
-	}
-	if (card_value(player2[0]) == card_value(player2[1]))
-                player2_hand[1] = card_value(player2[0]);
-	for (i=0;i<2;i++){
-                for (x=0;x<5;x++){
-                        if (card_value(player2[i]) == card_value(middle[x]) && player2_hand[2] ==0){
-                                player2_hand[2]= card_value(player2[i]);
-			}
-                        else if (card_value(player2[i]) == card_value(middle[x]) && player2_hand[2]>0){
-                                player2_hand[3]= card_value(player2[i]);
-			}
-                }
-        }
-	if (card_value(player3[0]) == card_value(player3[1]))
-		player3_hand[1] = card_value(player3[0]);
-	for (i=0;i<2;i++){
-                for (x=0;x<5;x++){
-                        if (card_value(player3[i]) == card_value(middle[x]) && player3_hand[2] ==0){
-                                player3_hand[2]= card_value(player3[i]);
+	int i,x,k,count;
+	for (k=0;k<3;k++){
+		for (i=0;i<7;i++){
+			count=1;
+			for (x=i+1;x<7;x++){
+				if (card_value(p[k].full[i])==card_value(p[k].full[x])){
+					count++;
+                                        if (count >= 2 && p[k].hand[1]==0)
+                                        	p[k].hand[1] = card_value(p[k].full[i]);
+                                        if (count >= 2 && p[k].hand[1]>0 &&p[k].hand[2]==0&&p[k].hand[1] != card_value(p[k].full[i]))
+                                                p[k].hand[2] = card_value(p[k].full[i]);
+					if (count >=2 &&p[k].hand[2]>0 && p[k].hand[2] != card_value(p[k].full[i]))
+						p[k].hand[3] = card_value(p[k].full[i]);
+                                        
+                                }
                         }
-			else if (card_value(player3[i]) == card_value(middle[x]) && player3_hand[2]>0){
-                                player3_hand[3]= card_value(player3[i]);
-			}
                 }
         }
 
 }
 void check_three(){
-	int i,x;
-	if (card_value(player1[0])==card_value(player1[1])){
-		for (i=0;i<5;i++){
-			if (card_value(player1[0])==card_value(middle[i]))
-				player1_hand[4] = card_value(player1[0]);
-		}
-	}
-	if (card_value(player2[0])==card_value(player2[1])){
-                for (i=0;i<5;i++){
-                        if (card_value(player2[0])==card_value(middle[i]))
-                                player2_hand[4] = card_value(player2[0]);
-                }
-        }
-	if (card_value(player3[0])==card_value(player3[1])){
-                for (i=0;i<5;i++){
-                        if (card_value(player3[0])==card_value(middle[i]))
-                                player3_hand[4] = card_value(player3[0]);
-                }
-        }
-	for (i=0;i<5;i++){
-		for (x=i+1;x<5;x++){
-			if (card_value(middle[i])==card_value(middle[x])){
-				if (card_value(middle[i])==card_value(player1[0])){
-					if (player1_hand[4]==0)
-						player1_hand[4] = card_value(player1[0]);
-					else
-						player1_hand[5] = card_value(player1[0]);
-				}
-				else if (card_value(middle[i]) == card_value(player1[1])){
-					if (player1_hand[4]==0)
-						player1_hand[4] = card_value(player1[0]);
-					else
-						player1_hand[5] = card_value(player1[1]);
+	int i,x,k,j,count;
+	for (k=0;k<3;k++){
+		for (j=1;j<4;j++){
+			if ( p[k].hand[j] >0){
+				for (i=0;i<7;i++){
+					count=1;
+					for (x=i+1;x<7;x++){
+						if (card_value(p[k].full[i])==card_value(p[k].full[x])){
+							count++;
+							if (count >= 3 && p[k].hand[4]==0)
+								p[k].hand[4] = card_value(p[k].full[i]);
+							if (count >= 3 && p[k].hand[4]>0 && p[k].hand[4] != card_value(p[k].full[i]))
+								p[k].hand[5] = card_value(p[k].full[i]);
+						}
+					}
 				}
 			}
 		}
 	}
-	for (i=0;i<5;i++){
-                for (x=i+1;x<5;x++){
-                        if (card_value(middle[i])==card_value(middle[x])){
-                                if (card_value(middle[i])==card_value(player2[0])){
-                                        if (player2_hand[4]==0)
-                                                player2_hand[4] = card_value(player2[0]);
-                                        else
-                                                player2_hand[5] = card_value(player2[0]);
-				}
-                                else if (card_value(middle[i]) == card_value(player2[1])){
-                                        if (player2_hand[4]==0)
-                                                player2_hand[4] = card_value(player2[0]);
-                                        else
-                                                player2_hand[5] = card_value(player2[1]);
-				}
-                        }
-                }
-        }
-	for (i=0;i<5;i++){
-                for (x=i+1;x<5;x++){
-                        if (card_value(middle[i])==card_value(middle[x])){
-                                if (card_value(middle[i])==card_value(player3[0])){
-                                        if (player3_hand[4]==0)
-                                                player3_hand[5] = card_value(player3[0]);
-                                        else
-                                                player3_hand[4] = card_value(player3[0]);
-				}
-                                else if (card_value(middle[i]) == card_value(player3[1])){
-                                        if (player3_hand[4]==0)
-                                                player3_hand[5] = card_value(player3[0]);
-                                        else
-                                                player3_hand[4] = card_value(player3[1]);
-				}
-                        }
-                }
-        }
-
 }
 void check_straight(){
-	int i,j,temp1,count;
-	for (i=0;i<8;i++){
-		for (j=i+1;j<8;j++){
-			if (card_value(player1_full[i])> card_value(player1_full[j])){
-				temp1=player1_full[i];		
-				player1_full[i] = player1_full[j];
-				player1_full[j] = temp1;
-			}
-		}
-	}
-	for (i=0;i<8;i++){
-                for (j=i+1;j<8;j++){
-                        if (card_value(player2_full[i])> card_value(player2_full[j])){
-                                temp1=player2_full[i];
-                                player2_full[i] = player2_full[j];
-                                player2_full[j] = temp1;
-			}
-                }
-        }
-	for (i=0;i<8;i++) {
-                for (j=i+1;j<8;j++){
-                        if (card_value(player3_full[i]) > card_value(player3_full[j])){
-                                temp1=player3_full[i];
-                                player3_full[i] = player3_full[j];
-                                player3_full[j] = temp1;
-			}
-                }
-        }
-	count = 1;
-	for (j=0;j<7;j++){
-		if (card_value(player1_full[j]) == (card_value(player1_full[j+1])-1)){
-			count++;
-			printf("%d\n",count);
-			if (count>=5)
-				player1_hand[6]= card_value(player1_full[j+1]);
-		}
-		else if (card_value(player1_full[j])==(card_value(player1_full[j+1])))
-			;
-		else
-			count = 1;
-	}
-        count=1;
-        for (j=0;j<7;j++){
- 	       if (card_value(player2_full[j]) == (card_value(player2_full[j+1])-1)){
-        	       count++;
-                       if (count>=5)
-                	       player2_hand[6]= card_value(player2_full[j+1]);
-                }
-        	else if (card_value(player2_full[j])==(card_value(player2_full[j+1])))
-                        ;
-                else
-                        count = 1;
-
-	}
-
-        count=1;
-        for (j=0;j<7;j++){
-	        if (card_value(player3_full[j]) == (card_value(player3_full[j+1])-1)){
-        	        count++;
-                        if (count>=5)
-                	        player3_hand[6]= card_value(player3_full[j+1]);
-        	}
-		else if (card_value(player3_full[j])==(card_value(player3_full[j+1])))
-                        ;
-                else
-                        count = 1;
-
-	}
-
-}
-void check_flush(){
-	int i,j,count;
-	for (i=0;i<8;i++){
-		count=0;
-		for (j=i+1;j<8;j++){
-			if (suit(player1_full[i])==suit(player1_full[j])){
+	int j,count,k;
+	for (k=0;k<3;k++){
+		count = 1;
+		for (j=0;j<7;j++){
+			if (card_value(p[k].full[j]) == (card_value(p[k].full[j+1])-1)){
 				count++;
-				if (count>=4)
-					player1_hand[7] = card_value(player1_full[j]);
+				if (count>=5)
+					p[k].hand[6]= card_value(p[k].full[j+1]);
 			}
+			else if (card_value(p[k].full[j])==(card_value(p[k].full[j+1])))
+				;
+			else
+				count = 1;
 		}
+	}       
+}
 
+void check_flush(){
+	int k,i,j,count;
+	for (k=0;k<3;k++){
+		for (i=0;i<8;i++){
+			count=0;
+			for (j=i+1;j<7;j++){
+				if (suit(p[k].full[i])==suit(p[k].full[j])){
+					count++;
+					if (count>=4)
+						p[k].hand[7] = card_value(p[k].full[j]);
+				}
+			}
+		}	
 	}
-	for (i=0;i<8;i++){
-                count=0;
-                for (j=i+1;j<8;j++){
-                        if (suit(player2_full[i])==suit(player2_full[j])){
-                                count++;
-                                if (count>=4)
-                                        player2_hand[7] = card_value(player2_full[j]);
+	
+}
+void check_full_house(){
+	int i,j,k;
+	for (k=0;k<3;k++){
+		for (i=4;i<6;i++){
+			for (j=1;j<4;j++){
+				if (p[k].hand[i]>0){
+					if (p[k].hand[i] != p[k].hand[j] && p[k].hand[j]>0){
+						p[k].hand[8] = p[k].hand[j];
+						p[k].hand[9] = p[k].hand[i];
+					}
+				}
+			}	
+		}
+	}	
+}
+void check_four(){
+        int i,x,k,j,count;
+        for (k=0;k<3;k++){
+                for (j=1;j<4;j++){
+                        if ( p[k].hand[j] >0){
+                                for (i=0;i<7;i++){
+                                        count=1;
+                                        for (x=i+1;x<7;x++){
+                                                if (card_value(p[k].full[i])==card_value(p[k].full[x])){
+                                                        count++;
+                                                        if (count >= 4)
+                                                                p[k].hand[10] = card_value(p[k].full[i]);
+                                                }
+                                        }
+                                }
                         }
                 }
-
         }
-	for (i=0;i<8;i++){
-                count=0;
-                for (j=i+1;j<8;j++){
-                        if (suit(player3_full[i])==suit(player3_full[j])){
+}
+void check_sf(){
+	int j,count,k;
+        for (k=0;k<3;k++){
+                count = 1;
+                for (j=0;j<7;j++){
+                        if (card_value(p[k].full[j]) == (card_value(p[k].full[j+1])-1)&& suit(p[k].full[j])==suit(p[k].full[j+1])){
                                 count++;
-                                if (count>=4)
-                                        player3_hand[7] = card_value(player3_full[j]);
+                                if (count>=5)
+                                        p[k].hand[6]= card_value(p[k].full[j+1]);
                         }
+                        else if (card_value(p[k].full[j])==(card_value(p[k].full[j+1])))
+                                ;
+                        else
+                                count = 1;
                 }
-
         }
-
+	
+	
+}
+void check_rf(){
+	int k;
+	for (k=0;k<3;k++){
+		if (p[k].hand[11]>0 && p[k].hand[6]==13)
+			p[k].hand[12] = 13;
+	}
 }
