@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <unistd.h>
+#define ROWS 10
+#define COLS 50
+
 
 void create_deck();
 void shuffle_deck();
 void reset_players();
 void start_game();
 int card_value(int);
-void show_value(int);
+char show_value(int);
 int suit(int);
-void show_suit(int);
+char show_suit(int);
 void check_pairs();
 void check_high();
 void check_three();
@@ -19,19 +23,32 @@ void check_full_house();
 void check_four();
 void check_sf();
 void check_rf();
+void print_cards(int, int);
+void print_flop(int, int, int);
+void print_turn(int, int, int, int);
+void print_river(int, int, int, int, int);
+void print_array(char lines[ROWS][COLS]);
+void game_sequence();
+void reset_fold();
+void annie();
+void bet();
+int choose_winner();
+
 struct player{
 	int cards[2];
 	int hand[13];
 	int full[7];
 	int money;
+	int fold;
+	int max;
 };
 struct player p[4];
-
-int deck[52],middle[5];
+int pot,deck[52],middle[5];
 
 
 int main(){
-	int i;
+	printf("You are player 0\n");
+	printf("1's = 10\n");
 	create_deck();
 	srand(time(NULL));
 	shuffle_deck();
@@ -46,21 +63,294 @@ int main(){
 	check_four();
 	check_sf();
 	check_rf();
-	for (i=0;i<13;i++){
-		printf("%3d",p[0].hand[i]);
-	}
-	printf("\n");
-	for (i=0;i<7;i++){
-		printf("%3d", card_value(p[0].full[i]));
-	}	
-	printf("\n");
-	for (i=0;i<7;i++){
-		printf("%3d", suit(p[0].full[i]));
-	}
-	printf("\n");
+	game_sequence();	
+	
 	return 0;
 }
+void print_cards(int num, int num1){
+	char intro[ROWS][COLS]={
+    "******************",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "*       **       *",
+    "******************"};
+	intro[7][7] = show_value(num);
+	intro[1][1] = show_value(num);
+	intro[4][4] = show_suit(num);
+	intro[1][10] = show_value(num1);
+	intro[7][16] = show_value(num1);
+	intro[4][12] = show_suit(num1);
+	print_array(intro);
+}
+void print_flop(int num,int num1, int num2){
+	 char intro[ROWS][COLS]={
+    "***************************",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "*       **       **       *",
+    "***************************",};
+        intro[7][7] = show_value(num);
+        intro[1][1] = show_value(num);
+        intro[4][4] = show_suit(num);
+        intro[7][16] = show_value(num1);
+        intro[1][10] = show_value(num1);
+        intro[4][13] = show_suit(num1);
+        intro[7][25] = show_value(num2);
+        intro[1][19] = show_value(num2);
+        intro[4][22] = show_suit(num2);
+        print_array(intro);
 
+}
+void print_turn(int num,int num1,int num2,int num3){
+	 char intro[ROWS][COLS]={
+    "************************************",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "*       **       **       **       *",
+    "************************************"};
+        intro[7][7] = show_value(num);
+        intro[1][1] = show_value(num);
+        intro[4][4] = show_suit(num);
+        intro[7][16] = show_value(num1);
+        intro[1][10] = show_value(num1);
+        intro[4][13] = show_suit(num1);
+	intro[7][25] = show_value(num2);
+        intro[1][19] = show_value(num2);
+        intro[4][22] = show_suit(num2);
+        intro[7][34] = show_value(num3);
+        intro[1][28] = show_value(num3);
+        intro[4][31] = show_suit(num3);
+        print_array(intro);
+}
+void print_river(int num,int num1,int num2,int num3,int num4){
+
+	 char intro[ROWS][COLS]={
+    "*********************************************",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*       **       **       **       **       *",
+    "*********************************************"};
+        intro[7][7] = show_value(num);
+        intro[1][1] = show_value(num);
+        intro[4][4] = show_suit(num);
+        intro[7][16] = show_value(num1);
+        intro[1][10] = show_value(num1);
+        intro[4][13] = show_suit(num1);
+        intro[7][25] = show_value(num2);
+        intro[1][19] = show_value(num2);
+        intro[4][22] = show_suit(num2);
+        intro[7][34] = show_value(num3);
+        intro[1][28] = show_value(num3);
+        intro[4][31] = show_suit(num3);
+	intro[7][43] = show_value(num4);
+        intro[1][37] = show_value(num4);
+        intro[4][40] = show_suit(num4);
+        print_array(intro);
+
+}
+void print_array(char lines[ROWS][COLS]){
+	int x;
+	for (x=0;x<ROWS;x++){
+		printf("%s\n",lines[x]);
+	}	
+}
+void game_sequence(){
+	int win,i,k;
+	printf("Your cards are\n");
+        print_cards(p[0].cards[0],p[0].cards[1]);
+	annie();
+
+	printf("Your cards are\n");
+        print_cards(p[0].cards[0],p[0].cards[1]);
+	printf("The Flop:\n");
+        print_flop(middle[0],middle[1],middle[2]);
+	bet();
+
+	printf("Your cards are\n");
+        print_cards(p[0].cards[0],p[0].cards[1]);
+        printf("The Turn:\n");
+        print_turn(middle[0],middle[1],middle[2],middle[3]);
+	bet();
+
+	printf("Your cards are\n");
+        print_cards(p[0].cards[0],p[0].cards[1]);
+        printf("The River:\n");
+        print_river(middle[0],middle[1],middle[2],middle[3],middle[4]);
+	bet();
+	
+	win = choose_winner();
+	p[win].money+=pot;
+	printf("Player %d won!\n",win);
+	printf("They had a %c of %c",show_value(p[win].cards[0]),show_suit(p[win].cards[0]));
+	printf(" and a %c of %c\n",show_value(p[win].cards[1]),show_suit(p[win].cards[1]));
+	printf("They now have $%d\n",p[win].money);
+	pot=0;
+	for (i=0;i<3;i++){
+		for (k=0;k<13;k++){
+			printf("%3d",p[i].hand[k]);
+		}
+		printf("\n");
+	}
+	for (k=0;k<13;k++){
+		printf("%3d",p[0].hand[k]);
+	}
+	printf("\n");
+
+}
+void annie(){
+	int bet,i;
+	printf("Annie Up ($20) (type 0 to fold)\n");
+	scanf("%d",&bet);
+	while (bet!=20){
+                if (bet == 0){
+                        p[0].fold = 1;
+                }
+                else {
+                        printf("You must bet the annie or fold to start\n");
+                        scanf("%d",&bet);
+                }
+        }
+        if (bet>0){
+                for (i=0;i<3;i++){
+                        if ((p[i].money-bet) >0){
+                                p[i].money -=bet;
+                                pot += bet;
+				printf("Player %d has $%d left\n",i,p[0].money);
+                        }
+                        else if ((p[i].money-bet)<=0){
+				printf("Player %d went all in\n",i);
+                                pot += p[i].money;
+                                p[i].money = 0;
+                        }
+                }
+        }
+
+}
+void bet(){
+	int bet,i;
+        
+	printf("How much would you like to bet? (type -1 to fold)\n");
+        scanf("%d",&bet);
+        while (bet<0){
+                if (bet == -1){
+                        p[0].fold = 1;
+                }
+                else {
+                        printf("You must bet or fold\n");
+                        scanf("%d",&bet);
+                }
+        }
+        if (bet>=0){
+                for (i=0;i<3;i++){
+                        if ((p[i].money-bet) >0){
+				p[i].money -= bet;
+                                pot += bet;
+				printf("Player %d has $%d left\n",i,p[0].money);
+                        }
+                        else if ((p[i].money - bet)<=0){
+                                printf("Player %d went all in\n",i);
+				pot += p[i].money;
+                                p[i].money = 0;
+                        }
+                }
+        }
+}
+int choose_winner(){
+	int winner,k,i,num;
+	for (k=12;k>=0;k--){
+		for (i=0;i<3;i++){
+			if (p[i].hand[k] >0&& k >= p[i].max)
+				p[i].max = k;
+		}
+	}		
+	if (p[0].max > p[1].max && p[0].max >p[1].max)
+		winner = 0;
+	else if (p[1].max > p[0].max && p[1].max >p[2].max)
+		winner = 1;
+	else if (p[2].max > p[1].max && p[2].max >p[0].max)
+		winner = 2;
+	else if (p[0].max == p[1].max){
+		num = p[0].max;
+		if (p[0].hand[num]> p[1].hand[num])
+			winner=0;
+		else if (p[1].hand[num]> p[0].hand[num])
+			winner = 0;
+		else {
+			for (k=num;k>=0;k--){
+        			if (p[0].hand[k] >p[1].hand[k]){
+					winner=0;
+                               		break;
+				}
+				else if (p[1].hand[k]> p[0].hand[k]){
+					winner = 1;
+					break;
+				}
+	                }
+	        }
+	}
+	else if (p[0].max == p[2].max){
+		num = p[0].max;
+                if (p[0].hand[num]> p[2].hand[num])
+                        winner=0;
+                else if (p[2].hand[num]> p[0].hand[num])
+                        winner = 2;
+                else {
+                        for (k=num;k>=0;k--){
+                                if (p[0].hand[k] >p[2].hand[k]){
+                                        winner=0;
+                                        break;
+                                }
+                                else if (p[2].hand[k]> p[0].hand[k]){
+                                        winner = 2;
+                                        break;
+                                }
+                        }
+                }
+
+	}
+	else if (p[1].max == p[2].max){
+		num = p[1].max;
+                if (p[1].hand[num]> p[2].hand[num])
+                        winner=1;
+                else if (p[2].hand[num]> p[1].hand[num])
+                        winner = 2;
+                else {
+                        for (k=num;k>=0;k--){
+                                if (p[1].hand[k] >p[2].hand[k]){
+                                        winner=1;
+                                        break;
+                                }
+                                else if (p[2].hand[k]> p[1].hand[k]){
+                                        winner = 2;
+                                        break;
+                                }
+                        }
+                }
+
+	}
+
+	return winner;	
+}
 void create_deck(){
 	int i;
 	
@@ -83,6 +373,8 @@ void reset_players(){
 	for (i=0;i<3;i++){
 		p[i].cards[0] = 0;
 		p[i].cards[1] = 0;
+		p[i].money = 200;
+		p[i].max = 0;
 	}
 	for (i=0;i<11;i++){
 		for (x=0;x<3;x++){
@@ -91,6 +383,12 @@ void reset_players(){
 	}
 	for (i=0;i<5;i++)
 		middle[i] = 0;
+}
+void reset_fold(){
+	int i;
+	for (i=0;i<3;i++){
+		p[i].fold = 0;
+	}
 }
 void start_game(){
 	int i,x,k,j,temp1;
@@ -131,18 +429,18 @@ int card_value(int card){
 	num = card%13+1;
 	return num;
 }
-void show_value(int card){
+char show_value(int card){
 	int num;
 	char value;
 	num = card%13+1;
 	if (num==1)
-		value ='2';
+		value ='2' ;
 	if (num ==2)
-		value ='3';
+		value ='3' ;
 	if (num==3)
-		value = '4';
+		value = '4' ;
 	if (num ==4)
-		value = '5';
+		value = '5' ;
 	if (num==5)
 		value = '6';
 	if (num==6)
@@ -161,24 +459,26 @@ void show_value(int card){
 		value = 'K';
 	if (num==13)
 		value = 'A';
+	return value;
 }	
 int suit(int card){
 	int num;
 	num = card/13;
 	return num;
 }
-void show_suit(int card){
+char show_suit(int card){
 	int num;
 	num = card/13;
-	char *suit;
+	char suit;
 	if (num==0)
-		suit = "Spades";
+		suit = 'S';
 	else if (num==1)
-		suit = "Hearts";
+		suit = 'H';
 	else if (num==2)
-		suit = "Clubs";
+		suit = 'C';
 	else if (num==3)
-		suit = "Spades";	
+		suit = 'D';	
+	return suit;
 }
 void check_high(){
 	int value,i;
