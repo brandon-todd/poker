@@ -29,6 +29,9 @@ void print_turn(int, int, int, int);
 void print_river(int, int, int, int, int);
 void print_array(char lines[ROWS][COLS]);
 void game_sequence();
+void fold_sequence();
+void call_raise_fold(int);
+void raise();
 void reset_money();
 void annie();
 void bet();
@@ -41,6 +44,7 @@ struct player{
 	int money;
 	int fold;
 	int max;
+	int bet;
 };
 struct player p[4];
 int pot,deck[52],middle[5];
@@ -59,7 +63,6 @@ int main(){
 void print_cards(int num, int num1){
 	char intro[ROWS][COLS]={
     "******************",
-    "*       **       *",
     "*       **       *",
     "*       **       *",
     "*       **       *",
@@ -86,7 +89,6 @@ void print_flop(int num,int num1, int num2){
     "*       **       **       *",
     "*       **       **       *",
     "*       **       **       *",
-    "*       **       **       *",
     "***************************",};
         intro[7][7] = show_value(num);
         intro[1][1] = show_value(num);
@@ -103,7 +105,6 @@ void print_flop(int num,int num1, int num2){
 void print_turn(int num,int num1,int num2,int num3){
 	 char intro[ROWS][COLS]={
     "************************************",
-    "*       **       **       **       *",
     "*       **       **       **       *",
     "*       **       **       **       *",
     "*       **       **       **       *",
@@ -137,7 +138,6 @@ void print_river(int num,int num1,int num2,int num3,int num4){
     "*       **       **       **       **       *",
     "*       **       **       **       **       *",
     "*       **       **       **       **       *",
-    "*       **       **       **       **       *",
     "*********************************************"};
         intro[7][7] = show_value(num);
         intro[1][1] = show_value(num);
@@ -163,9 +163,25 @@ void print_array(char lines[ROWS][COLS]){
 		printf("%s\n",lines[x]);
 	}	
 }
+void fold_sequence(){
+	int i,k;
+	for (i=0;i<3;i++){
+		if (p[i].fold>0){
+			p[i].max = 0;
+			for (k=0;k<13;k++){
+				p[i].hand[k] = 0;
+				
+			}
+		}
+	}
+}
+
 void game_sequence(){
 	int win,i,k;
-	while (p[0].money>0 && p[1].money>0 && p[2].money>0){
+	while (p[0].money>0){
+		for (i=0;i<3;i++){
+			printf("Player %d has $%d\n",i,p[i].money);
+		}
 		create_deck();
         	shuffle_deck();
         	reset_players();
@@ -179,6 +195,12 @@ void game_sequence(){
 	        check_four();
 	        check_sf();
 	        check_rf();
+
+		for (i=1;i<3;i++){
+                        if (p[i].money <=0)
+                                p[i].fold = 1;
+                }
+
 
 		printf("Your cards are\n");
        		print_cards(p[0].cards[0],p[0].cards[1]);
@@ -201,7 +223,8 @@ void game_sequence(){
         	printf("The River:\n");
         	print_river(middle[0],middle[1],middle[2],middle[3],middle[4]);
 		bet();
-	
+
+		fold_sequence();
 		win = choose_winner();
 		p[win].money+=pot;
 		printf("Player %d won!\n",win);
@@ -209,85 +232,191 @@ void game_sequence(){
 		printf(" and a %c of %c\n",show_value(p[win].cards[1]),show_suit(p[win].cards[1]));
 		printf("They now have $%d\n",p[win].money);
 		pot=0;
+
 		for (i=0;i<3;i++){
+			printf("%3d",p[i].max);
 			for (k=0;k<13;k++){
 				printf("%3d",p[i].hand[k]);
 			}
 			printf("\n");
 		}
-		for (k=0;k<13;k++){
-			printf("%3d",p[0].hand[k]);
+		
+		if (p[1].money <=0)
+			printf("Player 1 is out\n");
+		if (p[2].money <=0)
+			printf("Player 2 is out\n");
+		if (p[1].money<=0 &&p[2].money<=0){
+			printf("You won!!\n");
+			break;
 		}
-		printf("\n");
+	}
+	printf("You Lose!\n");
+}
+void call_raise_fold(int b){
+	int i,k,b2;
+	for (k=12;k>=0;k--){
+                for (i=1;i<3;i++){
+                        if (p[i].hand[k] >0&& k >= p[i].max)
+                                p[i].max = k;
+                }
+        }
+
+	for (i=1;i<3;i++){
+		if (p[i].fold==0){
+			b2 = rand()%(p[i].max+1);
+			if (b2 == 0){
+				p[i].fold = 1;
+				p[i].bet = 0;
+			}
+			else if (b2 > 4 &&p[i].money >= (10+b))
+				p[i].bet = 20+b;
+			else if (b2 > 4 && p[i].money < (10+b))
+				p[i].bet = p[i].money;
+			else if (b2 < 4 && b2 >0 && p[i].money >= b)
+				p[i].bet = b;
+			else if (b2 < 4 && b2 >0 && p[i].money < b)
+				p[i].bet = p[i].money;
+		}	
+		else
+			p[i].bet = 0;
 	}
 }
+void raise(){
+	int i,b3;
+	while (p[0].bet < p[1].bet){
+                        printf("Player 1 has raised you to %d. Bet that amount or type 0 to fold\n",p[1].bet);
+                        scanf("%d", &b3);
+			if (b3 == p[1].bet){
+				for (i=2;i<0;i--){
+					p[i].bet = b3;
+				}
+				break;
+			}
+
+			else if (b3 == 0){
+				p[0].fold = 1;
+			}
+	}
+	while (p[0].bet < p[2].bet){
+                        printf("Player 2 has raised you to %d. Bet that amount or type 0 to fold\n",p[2].bet);
+                        scanf("%d", &b3);
+			if (b3 == p[1].bet){
+                                for (i=2;i<0;i--){
+                                        p[i].bet = b3;
+                                }
+				break;
+                        }
+                        else if (b3 == 0){
+                                p[0].fold = 1;
+				break;
+			}
+	}
+	if (p[1].bet ==0)
+		printf("Player 1 folded\n");
+	if (p[2].bet== 0)
+		printf("Player 2 folded\n");
+}
 void annie(){
-	int bet,i;
+	int bet,i,bet_num;	
 	printf("Annie Up ($20) (type 0 to fold)\n");
-	scanf("%d",&bet);
+	bet_num = scanf("%d",&bet);
+	while (bet_num != 1){
+		scanf("%*[^\n]");
+		printf("Please enter a valid number(20 to bet 0 to fold)\n");
+		bet_num = scanf("%d",&bet);
+	}
 	while (bet!=20){
                 if (bet == 0){
                         p[0].fold = 1;
-                }
+           		break;
+	        }
                 else {
                         printf("You must bet the annie or fold to start\n");
                         scanf("%d",&bet);
                 }
         }
-        if (bet>0){
+        if (bet > 0 && bet < p[0].money){
+		p[0].bet = bet;
+		call_raise_fold(p[0].bet);
+		raise();			
                 for (i=0;i<3;i++){
-                        if ((p[i].money-bet) >0){
-                                p[i].money -=bet;
-                                pot += bet;
-				printf("Player %d has $%d left\n",i,p[0].money);
-                        }
-                        else if ((p[i].money-bet)<=0){
-				printf("Player %d went all in\n",i);
-                                pot += p[i].money;
-                                p[i].money = 0;
-                        }
+                        p[i].money -= p[i].bet;
+                        pot += p[i].bet;
+			printf("Player %d has $%d left\n",i,p[i].money);
+                        p[i].bet = 0;
+		}       
+        	p[0].bet = 0;
+	}
+	else if (bet>0 && bet>= p[0].money){
+		p[0].bet = p[0].money;
+                call_raise_fold(p[0].bet);
+		raise();
+                for (i=0;i<3;i++){
+                        p[i].money -= p[i].bet;
+                        pot += p[i].bet;
+                        printf("Player %d has $%d left\n",i,p[i].money);
+                        p[i].bet = 0;
                 }
-        }
-
+                p[0].bet = 0;
+	}
+	
 }
 void bet(){
 	int bet,i;
         
-	printf("How much would you like to bet? (type -1 to fold)\n");
-        scanf("%d",&bet);
-	if (p[0].money>0){
-        	while (bet<0){
+	if (p[0].money>0&& p[0].fold == 0){
+        	printf("How much would you like to bet? (type -1 to fold)\n");
+	        scanf("%d",&bet);
+
+		while (bet<0){
                		if (bet == -1){
                        		p[0].fold = 1;
                 	}
+
                 	else {
                         	printf("You must bet or fold\n");
                         	scanf("%d",&bet);
                 	}
         	}
-        	if (bet>=0){
-                	for (i=0;i<3;i++){
-                        	if ((p[i].money-bet) >0){
-					p[i].money -= bet;
-                                	pot += bet;
-					printf("Player %d has $%d left\n",i,p[0].money);
-                        	}
-                        	else if ((p[i].money - bet)<=0){
-                                	printf("Player %d went all in\n",i);
-					pot += p[i].money;
-                                	p[i].money = 0;
-                        	}
+        	if (bet>0&& bet< p[0].money){
+	                p[0].bet = bet;
+        	        call_raise_fold(p[0].bet);
+               		raise();
+			for (i=0;i<3;i++){
+                        	p[i].money -= p[i].bet;
+                        	pot += p[i].bet;
+                        	printf("Player %d has $%d left\n",i,p[i].money);
+                        	p[i].bet = 0;
                 	}
+                	p[0].bet = 0;
         	}
+        	else if (bet>0 && bet>= p[0].money){
+                	p[0].bet = p[0].money;
+                	call_raise_fold(p[0].bet);
+                	raise();
+			for (i=0;i<3;i++){
+                        	p[i].money -= p[i].bet;
+                        	pot += p[i].bet;
+                        	printf("Player %d has $%d left\n",i,p[i].money);
+                        	p[i].bet = 0;
+                	}
+               		p[0].bet = 0;
+        	}
+
 	}
-	else
-		printf("You have no money\n");
+	else {
+		if (p[0].money ==0)
+			printf("You have no money\n");
+		else if (p[0].fold ==1)
+			printf("You folded\n");
+	}
+
 }
 int choose_winner(){
 	int winner,k,i,num;
 	for (k=12;k>=0;k--){
 		for (i=0;i<3;i++){
-			if (p[i].hand[k] >0&& k >= p[i].max)
+			if (p[i].hand[k] > 0 && k >= p[i].max)
 				p[i].max = k;
 		}
 	}		
@@ -299,12 +428,12 @@ int choose_winner(){
 		winner = 2;
 	else if (p[0].max == p[1].max){
 		num = p[0].max;
-		if (p[0].hand[num]> p[1].hand[num])
+		if (p[0].hand[num] > p[1].hand[num])
 			winner=0;
-		else if (p[1].hand[num]> p[0].hand[num])
+		else if (p[1].hand[num] > p[0].hand[num])
 			winner = 1;
 		else {
-			for (k=num;k>=0;k--){
+			for (k=num;k<0;k--){
         			if (p[0].hand[k] >p[1].hand[k]){
 					winner=0;
                                		break;
@@ -478,14 +607,18 @@ char show_suit(int card){
 	int num;
 	num = card/13;
 	char suit;
-	if (num==0)
+	if (num==0){
 		suit = 'S';
-	else if (num==1)
+	}
+	else if (num==1){
 		suit = 'H';
-	else if (num==2)
+	}
+	else if (num==2){
 		suit = 'C';
-	else if (num==3)
-		suit = 'D';	
+	}
+	else if (num==3){
+		suit = 'D';
+	}	
 	return suit;
 }
 void check_high(){
