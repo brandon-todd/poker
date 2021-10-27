@@ -45,7 +45,27 @@ void reset_money();
 void annie();
 void bet();
 int choose_winner();
-
+/* The structure for a player
+Elements: A player has 2 cards indicated by integer values
+	A player has 13 possible hands in the following order:
+		- one of a kind index 0(high card)
+		- two of a kind indexes 1,2,3(three slots for this bc 7/2 gives 3 possibilities)
+		- three of a kind in indexes 4,5 (two slots available bc 7/3 gives 2 possibilities)
+		- straight in index 6
+		- flush in index 7
+		- full house in indexes 8,9 (triplet in index 9, pair in index 8)
+		- four of a kind in index 10
+		- straight flush in index 11
+		- royal flush in index 12
+		Notes: The hands are placed in order of strength such that a higher index means a better hand
+		Notes: The high card for each is put into the index of the respective hand 
+			-ex: so if a player has a straight of 2,3,4,5,6 the value for the 6 card will be placed into index 6
+	A player has an array of integers with length of 7 (one for each card 2 of their own plus the 5 in the middle)
+	A player has an integer for how much money they have
+	A player has an integer to indicate if they folded or not (1 for fold 0 for not)
+	A player has an integer max value which represents the index of their best hand
+	A player has an integer value for the bet they make on a given hand
+*/
 struct player{
 	int cards[2];
 	int hand[13];
@@ -55,7 +75,9 @@ struct player{
 	int max;
 	int bet;
 };
-struct player p[4];
+//creates a player array with 3 players available as only 3 players are allowed in this game
+struct player p[3];
+//there are global variable for the pot (sum of all bets), the cards in the deck(all represented by integers), and the cards in the middle (integers as well) 
 int pot,deck[52],middle[5];
 
 
@@ -385,7 +407,9 @@ void game_sequence(){
 			break;
 		}
 	}
-	printf("You Lose!\n");
+	if (p[0].money<=0){
+		printf("You Lose!\n");
+	}
 }
 void call_raise_fold(int b){
 	/* This function returns a randomized bet by the computer players with a higher chance of raising
